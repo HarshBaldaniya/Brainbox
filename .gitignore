@@ -47,6 +47,3 @@ next-env.d.ts
 
 # firebase
 # service_key.json
-
-# liveblocks
-liveblocks.pem
