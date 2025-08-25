@@ -1,7 +1,10 @@
+import { ArrowLeftCircle } from "lucide-react";
+
 export default function Home() {
   return (
-    <div>  
-      <h1>Hello World</h1>
-    </div>
+    <main className="flex space-x-2 items-center animate-pulse">
+      <ArrowLeftCircle className="w-7 h-7" />
+      <h1 className="font-bold text">Get started with creating a new document.</h1>
+    </main>
   );
 }
