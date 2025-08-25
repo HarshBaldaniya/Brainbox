@@ -28,7 +28,7 @@ function Document({ id }: { id: string }) {
   const [history, setHistory] = useState<string[]>([]);
   const [historyIndex, setHistoryIndex] = useState<number>(-1);
 
-  const favoriteEmojis = ["😊", "💪", "🔥", "🚀", "⭐", "💡"];
+  const favoriteEmojis = ["😊", "💪", "🔥"];
 
   useEffect(() => {
     if (data) {

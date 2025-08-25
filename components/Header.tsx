@@ -2,6 +2,7 @@
 
 import { SignedIn, SignedOut, SignInButton, UserButton } from "@clerk/clerk-react";
 import { useUser } from "@clerk/nextjs";
+import Breadcrumbs from "./Breadcrumbs";
 // import Breadcrumbs from "./Breadcrumbs";
 
 function Header() {
@@ -17,7 +18,7 @@ function Header() {
       )}
 
       {/* Breadcrumbs */}
-      {/* <Breadcrumbs /> */}
+      <Breadcrumbs />
 
       <div>
         <SignedOut>
