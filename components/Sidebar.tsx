@@ -45,7 +45,7 @@ function Sidebar() {
 
   const [isLoading, setIsLoading] = useState(true);
 
-  const [data, loading, error] = useCollection(
+  const [data, loading] = useCollection(
     user &&
       query(
         collectionGroup(db, "rooms"),

@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useRef, useState } from "react";
+import { FormEvent, useEffect, useRef, useState, useCallback } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2, Smile } from "lucide-react";
@@ -8,6 +8,7 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useDocumentData } from "react-firebase-hooks/firestore";
 import EmojiPicker from "emoji-picker-react";
+// import useOwner from "@/lib/useOwner";
 
 interface EmojiObject {
   emoji: string;
@@ -23,6 +24,7 @@ function Document({ id }: { id: string }) {
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [cursorPosition, setCursorPosition] = useState<number>(0);
+  // const isOwner = useOwner();
 
   // History state for undo and redo
   const [history, setHistory] = useState<string[]>([]);
@@ -53,6 +55,52 @@ function Document({ id }: { id: string }) {
     };
   }, []);
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newValue = e.target.value;
+    setInput(newValue);
+    setCursorPosition(e.target.selectionStart || 0);
+
+    // Add to history only if new value differs from the last saved value
+    if (history[historyIndex] !== newValue) {
+      const newHistory = [...history.slice(0, historyIndex + 1), newValue];
+      setHistory(newHistory);
+      setHistoryIndex(newHistory.length - 1); // Move index to the latest
+    }
+  };
+
+  const updateTitle = async (e: FormEvent) => {
+    e.preventDefault();
+    if (input.trim()) {
+      setIsUpdating(true); // Start updating
+      await updateDoc(doc(db, "documents", id), { title: input });
+      setIsUpdating(false); // End updating
+    }
+  };
+
+  const undo = useCallback(() => {
+    if (historyIndex > 0) {
+      const newIndex = historyIndex - 1;
+      setHistoryIndex(newIndex);
+      setInput(history[newIndex]);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+      }, 0);
+    }
+  }, [historyIndex, history, cursorPosition]);
+
+  const redo = useCallback(() => {
+    if (historyIndex < history.length - 1) {
+      const newIndex = historyIndex + 1;
+      setHistoryIndex(newIndex);
+      setInput(history[newIndex]);
+      setTimeout(() => {
+        inputRef.current?.focus();
+        inputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
+      }, 0);
+    }
+  }, [historyIndex, history, cursorPosition]);
+
   // Handle keyboard shortcuts for undo (Cmd+Z on Mac, Ctrl+Z on Windows) and redo (Cmd+Shift+Z on Mac, Ctrl+Y on Windows)
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
@@ -77,53 +125,7 @@ function Document({ id }: { id: string }) {
     return () => {
       window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [historyIndex, history]);
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const newValue = e.target.value;
-    setInput(newValue);
-    setCursorPosition(e.target.selectionStart || 0);
-
-    // Add to history only if new value differs from the last saved value
-    if (history[historyIndex] !== newValue) {
-      const newHistory = [...history.slice(0, historyIndex + 1), newValue];
-      setHistory(newHistory);
-      setHistoryIndex(newHistory.length - 1); // Move index to the latest
-    }
-  };
-
-  const updateTitle = async (e: FormEvent) => {
-    e.preventDefault();
-    if (input.trim()) {
-      setIsUpdating(true); // Start updating
-      await updateDoc(doc(db, "documents", id), { title: input });
-      setIsUpdating(false); // End updating
-    }
-  };
-
-  const undo = () => {
-    if (historyIndex > 0) {
-      const newIndex = historyIndex - 1;
-      setHistoryIndex(newIndex);
-      setInput(history[newIndex]);
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
-      }, 0);
-    }
-  };
-
-  const redo = () => {
-    if (historyIndex < history.length - 1) {
-      const newIndex = historyIndex + 1;
-      setHistoryIndex(newIndex);
-      setInput(history[newIndex]);
-      setTimeout(() => {
-        inputRef.current?.focus();
-        inputRef.current?.setSelectionRange(cursorPosition, cursorPosition);
-      }, 0);
-    }
-  };
+  }, [undo, redo]);
 
   const onEmojiClick = (emojiObject: EmojiObject) => {
     if (inputRef.current) {
