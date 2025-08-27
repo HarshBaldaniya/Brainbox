@@ -6,6 +6,8 @@ import {
 } from "@liveblocks/react/suspense";
 import LoadingSpinner from "./LoadingSpinner";
 import LiveCuresorProvider from "./LiveCuresorProvider";
+import DocumentErrorHandler from "./DocumentErrorHandler";
+import DocumentAccessGuard from "./DocumentAccessGuard";
 
 function RoomProvider({
   roomId,
@@ -22,7 +24,12 @@ function RoomProvider({
       }}
     >
       <ClientSideSuspense fallback={<LoadingSpinner />}>
-        <LiveCuresorProvider>{children}</LiveCuresorProvider>
+        <LiveCuresorProvider>
+          <DocumentErrorHandler />
+          <DocumentAccessGuard>
+            {children}
+          </DocumentAccessGuard>
+        </LiveCuresorProvider>
       </ClientSideSuspense>
     </RoomProviderWrapper>
   );

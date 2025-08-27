@@ -8,7 +8,13 @@ import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useDocumentData } from "react-firebase-hooks/firestore";
 import EmojiPicker from "emoji-picker-react";
-// import useOwner from "@/lib/useOwner";
+import Editor from "./Editor";
+import ManageUsers from "./ManageUsers";
+import Avatars from "./Avatars";
+import useOwner from "@/lib/useOwner";
+import InviteUser from "./InviteUser";
+import DeleteDocument from "./DeleteDocument";
+import { useDocumentAccess } from "@/lib/useDocumentAccess";
 
 interface EmojiObject {
   emoji: string;
@@ -21,10 +27,12 @@ function Document({ id }: { id: string }) {
   const [input, setInput] = useState("");
   const [isUpdating, setIsUpdating] = useState(false);
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [isInviting, setIsInviting] = useState(false);
   const emojiPickerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const [cursorPosition, setCursorPosition] = useState<number>(0);
-  // const isOwner = useOwner();
+  const isOwner = useOwner();
+  const { checkAccess } = useDocumentAccess();
 
   // History state for undo and redo
   const [history, setHistory] = useState<string[]>([]);
@@ -70,6 +78,13 @@ function Document({ id }: { id: string }) {
 
   const updateTitle = async (e: FormEvent) => {
     e.preventDefault();
+    
+    // Check access before updating
+    const hasAccessToDocument = await checkAccess();
+    if (!hasAccessToDocument) {
+      return; // Access check will handle redirect
+    }
+    
     if (input.trim()) {
       setIsUpdating(true); // Start updating
       await updateDoc(doc(db, "documents", id), { title: input });
@@ -104,18 +119,18 @@ function Document({ id }: { id: string }) {
   // Handle keyboard shortcuts for undo (Cmd+Z on Mac, Ctrl+Z on Windows) and redo (Cmd+Shift+Z on Mac, Ctrl+Y on Windows)
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
-      const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
       const cmdOrCtrl = isMac ? event.metaKey : event.ctrlKey;
-      
+
       // Undo: Cmd+Z (Mac) or Ctrl+Z (Windows)
-      if (cmdOrCtrl && event.key === 'z' && !event.shiftKey) {
+      if (cmdOrCtrl && event.key === "z" && !event.shiftKey) {
         event.preventDefault();
         undo();
       }
       // Redo: Cmd+Shift+Z (Mac) or Ctrl+Y (Windows)
       else if (
-        (isMac && cmdOrCtrl && event.shiftKey && event.key === 'z') ||
-        (!isMac && cmdOrCtrl && event.key === 'y')
+        (isMac && cmdOrCtrl && event.shiftKey && event.key === "z") ||
+        (!isMac && cmdOrCtrl && event.key === "y")
       ) {
         event.preventDefault();
         redo();
@@ -171,114 +186,136 @@ function Document({ id }: { id: string }) {
   if (error) {
     return (
       <div className="flex-1 h-full bg-white p-5 flex items-center justify-center">
-        <div className="text-red-600">Error loading document: {error.message}</div>
+        <div className="text-red-600">
+          Error loading document: {error.message}
+        </div>
       </div>
     );
   }
 
   return (
     <>
-      <div className="flex-1 h-full bg-white p-5">
-        <div className="max-w-6xl mx-auto pb-5 relative">
-          {/* Mobile-friendly layout */}
-          <div className="flex flex-col lg:flex-row lg:justify-between lg:items-center gap-4">
-            {/* Title Input Section */}
-            <div className="flex-1">
-              <form onSubmit={updateTitle} className="w-full">
-                <Input
-                  ref={inputRef}
-                  value={input}
-                  onChange={handleInputChange}
-                  onClick={() =>
-                    setCursorPosition(inputRef.current?.selectionStart || 0)
-                  }
-                  placeholder="Enter document title"
-                  className="text-lg font-medium w-full"
-                />
-              </form>
-            </div>
-
-            {/* Action Buttons Section */}
-            <div className="flex items-center gap-3 flex-wrap">
-              {/* Favorite Emojis - Hidden on mobile, visible on large screens */}
-              <div className="hidden lg:flex space-x-1">
-                {favoriteEmojis.map((emoji) => (
-                  <button
-                    key={emoji}
-                    type="button"
-                    onClick={() => addFavoriteEmoji(emoji)}
-                    className="text-xl transition-all duration-200 transform hover:scale-110 hover:bg-gray-100 rounded-lg p-2 hover:shadow-sm border border-transparent hover:border-gray-200"
-                    title={`Add ${emoji}`}
-                  >
-                    {emoji}
-                  </button>
-                ))}
+      <div className="flex-1 h-full bg-gray-50 p-3 sm:p-6">
+        <div className="max-w-7xl mx-auto">
+          {/* Main Content Card */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-6">
+            {/* Header Section */}
+            <div className="space-y-4">
+              {/* Title Input - Full Width */}
+              <div className="w-full">
+                <form onSubmit={updateTitle}>
+                  <Input
+                    ref={inputRef}
+                    value={input}
+                    onChange={handleInputChange}
+                    onClick={() =>
+                      setCursorPosition(inputRef.current?.selectionStart || 0)
+                    }
+                    placeholder="Enter document title"
+                    className="text-base sm:text-lg lg:text-xl font-semibold w-full border border-gray-300 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 px-4 py-3 rounded-md bg-white transition-all duration-200 placeholder:text-gray-400"
+                  />
+                </form>
               </div>
 
-              {/* Emoji Picker Button */}
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowEmojiPicker(!showEmojiPicker);
-                    setTimeout(() => inputRef.current?.focus(), 0);
-                  }}
-                  className="p-2.5 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors duration-200 border border-gray-200 hover:border-gray-300 shadow-sm"
-                  title="Open emoji picker"
-                >
-                  <Smile className="h-5 w-5 text-gray-600" />
-                </button>
+              {/* Action Buttons - Mobile Stacked */}
+              <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+                {/* Favorite Emojis - Hidden on Mobile */}
+                <div className="hidden sm:flex space-x-1">
+                  {favoriteEmojis.map((emoji) => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => addFavoriteEmoji(emoji)}
+                      className="text-lg sm:text-xl transition-all duration-200 hover:bg-gray-100 rounded-lg p-2 hover:shadow-sm cursor-pointer"
+                      title={`Add ${emoji}`}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
 
                 {/* Emoji Picker */}
-                {showEmojiPicker && (
-                  <div
-                    ref={emojiPickerRef}
-                    className="absolute z-50 mt-2 right-0 lg:right-0"
-                    style={{ top: "100%" }}
+                <div className="relative hidden sm:block">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowEmojiPicker(!showEmojiPicker);
+                      setTimeout(() => inputRef.current?.focus(), 0);
+                    }}
+                    className="w-full sm:w-auto p-3 sm:p-2 bg-white hover:bg-gray-50 rounded-lg transition-all duration-200 border-2 border-gray-300 hover:border-gray-400 shadow-sm flex items-center justify-center sm:justify-start gap-2 cursor-pointer"
+                    title="Open emoji picker"
                   >
-                    <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2">
-                      <EmojiPicker
-                        onEmojiClick={onEmojiClick}
-                        reactionsDefaultOpen={false}
-                        searchPlaceholder="Search emoji..."
-                        width={350}
-                        height={400}
-                      />
+                    <Smile className="h-5 w-5 text-gray-600" />
+                    <span className="sm:hidden text-sm font-medium">Add Emoji</span>
+                  </button>
+
+                  {showEmojiPicker && (
+                    <div
+                      ref={emojiPickerRef}
+                      className="absolute z-50 mt-2"
+                      style={{ 
+                        top: "100%",
+                        left: "0",
+                        right: "0",
+                        maxWidth: "320px"
+                      }}
+                    >
+                      <div className="bg-white rounded-lg shadow-lg border border-gray-200 p-2">
+                        <EmojiPicker
+                          onEmojiClick={onEmojiClick}
+                          reactionsDefaultOpen={false}
+                          searchPlaceholder="Search emoji..."
+                          width={280}
+                          height={320}
+                        />
+                      </div>
                     </div>
+                  )}
+                </div>
+
+                {/* Update Button - Full Width on Mobile */}
+                <Button
+                  disabled={isUpdating || isInviting}
+                  type="submit"
+                  onClick={updateTitle}
+                  className="w-full sm:w-auto bg-gray-700 hover:bg-gray-800 text-white px-4 py-3 sm:px-4 sm:py-2 rounded-lg font-medium shadow-sm hover:shadow-md transition-all duration-200 text-sm sm:text-base cursor-pointer"
+                >
+                  {isUpdating ? (
+                    <div className="flex items-center justify-center space-x-2">
+                      <Loader2 className="animate-spin h-4 w-4" />
+                      <span>Updating...</span>
+                    </div>
+                  ) : (
+                    "Update Document"
+                  )}
+                </Button>
+
+                {/* Owner Actions - Stacked on Mobile */}
+                {isOwner && (
+                  <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                    <InviteUser onInviting={(status) => setIsInviting(status)} />
+                    <DeleteDocument />
                   </div>
                 )}
               </div>
 
-              {/* Update Button */}
-              <Button
-                disabled={isUpdating}
-                type="submit"
-                onClick={updateTitle}
-                className={`${
-                  isUpdating ? "opacity-50 cursor-not-allowed" : ""
-                }`}
-              >
-                {isUpdating ? (
-                  <div className="flex items-center space-x-2">
-                    <Loader2 className="animate-spin h-4 w-4" />
-                    <span>Updating...</span>
-                  </div>
-                ) : (
-                  "Update"
-                )}
-              </Button>
+              {/* User Management Row - Mobile Optimized */}
+              <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+                <ManageUsers />
+                <div className="flex flex-col sm:flex-row items-center gap-2 sm:gap-3">
+                  <span className="hidden sm:inline text-sm text-gray-600 text-right">Users currently editing this page!</span>
+                  <Avatars />
+                </div>
+              </div>
             </div>
           </div>
-        </div>
 
-        <hr className="border-gray-200 mb-10" />
+          {/* Content Separator */}
+          <hr className="border-gray-200 my-6" />
 
-        {/* Document content area */}
-        <div className="max-w-6xl mx-auto">
-          <div className="bg-gray-50 rounded-lg p-8 text-center">
-            <p className="text-gray-500 text-lg">
-              Document content area - Add your editor component here
-            </p>
+          {/* Document content area */}
+          <div className="relative">
+            <Editor />
           </div>
         </div>
       </div>
@@ -287,4 +324,3 @@ function Document({ id }: { id: string }) {
 }
 
 export default Document;
-
