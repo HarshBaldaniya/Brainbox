@@ -4,8 +4,6 @@
 
 A modern, AI-powered collaborative document editing platform built with Next.js 15, featuring real-time collaboration, intelligent AI assistance, and enterprise-grade security.
 
-![BrainBox Platform](https://brainbox-hb.vercel.app/)
-
 ## ✨ Features
 
 ### 🚀 Core Features
@@ -282,16 +280,6 @@ npx tsc --noEmit
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🆘 Support
-
-- **Live Demo**: [https://brainbox-hb.vercel.app/](https://brainbox-hb.vercel.app/)
-- **Issues**: Create an issue in the GitHub repository
-- **Documentation**: Check the inline code comments and this README
 
 ## 🚀 Roadmap
 
