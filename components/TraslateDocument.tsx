@@ -131,9 +131,14 @@ function TranslateDocument({ doc }: { doc: Y.Doc }) {
         });
 
         if (!res.ok) {
-          // const errorText = await res.text();
-          // console.error("Error Response Text:", errorText);
-          toast.error("Failed to translate the document. Please try again.");
+          const errorResponse = await res.json().catch(() => ({}));
+          
+          // Handle rate limit and other API errors
+          if (res.status === 429 || res.status === 500 || res.status >= 400) {
+            toast.error("System limit exceeded. Please try again later.");
+          } else {
+            toast.error("Failed to translate the document. Please try again.");
+          }
           return;
         }
 

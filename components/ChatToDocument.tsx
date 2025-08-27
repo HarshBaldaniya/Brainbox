@@ -100,16 +100,17 @@ function ChatToDocument({ doc }: { doc: Y.Doc }) {
         } else {
             const errorResponse = await res.json();
 
-            // Check for specific error from backend
-            if (errorResponse.error === "Chatbot request failed") {
+            // Handle rate limit and other API errors
+            if (res.status === 429 || res.status === 500 || res.status >= 400) {
+                const errorMessage = errorResponse.error || "Service temporarily unavailable. Please try again later.";
                 setHistory((prev) => [
                     ...prev,
                     {
                         question: currentQuestion,
-                        response: "Temporarily, the chatbot AI feature is not working. Please try again later.",
+                        response: "System limit exceeded. Please try again later.",
                     },
                 ]);
-                toast.error("Chatbot AI is temporarily unavailable.");
+                toast.error("System limit exceeded. Please try again later.");
             } else {
                 setHistory((prev) => [
                     ...prev,

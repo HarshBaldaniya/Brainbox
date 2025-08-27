@@ -4,6 +4,7 @@ import { FormEvent, useEffect, useRef, useState, useCallback } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
 import { Loader2, Smile } from "lucide-react";
+import { toast } from "sonner";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "@/firebase";
 import { useDocumentData } from "react-firebase-hooks/firestore";
@@ -15,6 +16,7 @@ import useOwner from "@/lib/useOwner";
 import InviteUser from "./InviteUser";
 import DeleteDocument from "./DeleteDocument";
 import { useDocumentAccess } from "@/lib/useDocumentAccess";
+import { APP_LIMITS, ERROR_MESSAGES } from "@/lib/limits";
 
 interface EmojiObject {
   emoji: string;
@@ -83,6 +85,17 @@ function Document({ id }: { id: string }) {
     const hasAccessToDocument = await checkAccess();
     if (!hasAccessToDocument) {
       return; // Access check will handle redirect
+    }
+    
+    // Validate title length
+    if (input.length > APP_LIMITS.MAX_TITLE_LENGTH) {
+      toast.error(ERROR_MESSAGES.TITLE_TOO_LONG);
+      return;
+    }
+    
+    if (input.length < APP_LIMITS.MIN_TITLE_LENGTH) {
+      toast.error(ERROR_MESSAGES.TITLE_TOO_SHORT);
+      return;
     }
     
     if (input.trim()) {
@@ -204,16 +217,22 @@ function Document({ id }: { id: string }) {
               {/* Title Input - Full Width */}
               <div className="w-full">
                 <form onSubmit={updateTitle}>
-                  <Input
-                    ref={inputRef}
-                    value={input}
-                    onChange={handleInputChange}
-                    onClick={() =>
-                      setCursorPosition(inputRef.current?.selectionStart || 0)
-                    }
-                    placeholder="Enter document title"
-                    className="text-base sm:text-lg lg:text-xl font-semibold w-full border border-gray-300 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 px-4 py-3 rounded-md bg-white transition-all duration-200 placeholder:text-gray-400"
-                  />
+                  <div className="relative">
+                    <Input
+                      ref={inputRef}
+                      value={input}
+                      onChange={handleInputChange}
+                      onClick={() =>
+                        setCursorPosition(inputRef.current?.selectionStart || 0)
+                      }
+                      placeholder="Enter document title"
+                      className="pr-16 text-base sm:text-lg lg:text-xl font-semibold w-full border border-gray-300 focus:border-gray-500 focus:ring-1 focus:ring-gray-500 px-4 py-3 rounded-md bg-white transition-all duration-200 placeholder:text-gray-400"
+                      maxLength={APP_LIMITS.MAX_TITLE_LENGTH}
+                    />
+                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 text-xs text-gray-400">
+                      {input.length}/{APP_LIMITS.MAX_TITLE_LENGTH}
+                    </div>
+                  </div>
                 </form>
               </div>
 

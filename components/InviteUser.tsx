@@ -48,7 +48,7 @@ function InviteUser({ onInviting }: { onInviting?: (isInviting: boolean) => void
       setEmail("");
       toast.success("User Added to Room Successfully!");
     } else {
-      toast.error("Failed to add user to room!");
+      toast.error(result?.error || "Failed to add user to room!");
     }
     setIsInviting(false); // End inviting
     if (onInviting) onInviting(false); // Notify parent
