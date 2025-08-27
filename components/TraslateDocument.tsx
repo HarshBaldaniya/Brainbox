@@ -95,11 +95,11 @@ function TranslateDocument({ doc }: { doc: Y.Doc }) {
     setFunText(funTexts[0]);
 
     startTransition(async () => {
-      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "";
-      if (!baseUrl) {
-        toast.error("Server URL is not configured!");
-        return;
-      }
+      // Use Cloudflare URL directly with fallback
+      const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || "https://wispy-forest-bdef.baldaniyaharsh5.workers.dev";
+
+      // Debug: Log the URL being called
+      console.log("Calling API URL:", `${baseUrl}/translateDocument`);
 
       const documentData = doc.get("document-store").toJSON();
 
