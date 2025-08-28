@@ -1,15 +1,30 @@
 import { initializeApp, getApps, getApp, App, cert, ServiceAccount } from "firebase-admin/app";
 import { getFirestore } from "firebase-admin/firestore";
 
-import serviceKey from "@/service_key.json";
-
 let app: App;
 
-if(getApps().length === 0) {
+if (getApps().length === 0) {
+  try {
+    // Use environment variables for Firebase Admin SDK
+    const serviceAccount: ServiceAccount = {
+      projectId: process.env.FIREBASE_PROJECT_ID!,
+      privateKey: process.env.FIREBASE_PRIVATE_KEY!.replace(/\\n/g, '\n'),
+      clientEmail: process.env.FIREBASE_CLIENT_EMAIL!,
+    };
+
     app = initializeApp({
-        credential: cert(serviceKey as ServiceAccount),
+      credential: cert(serviceAccount),
+      projectId: process.env.FIREBASE_PROJECT_ID,
     });
-} else app = getApp();
+    
+    console.log("✅ Firebase Admin SDK initialized successfully with environment variables");
+  } catch (error) {
+    console.error("❌ Failed to initialize Firebase Admin SDK:", error);
+    throw error;
+  }
+} else {
+  app = getApp();
+}
 
 const adminDb = getFirestore(app);
 
